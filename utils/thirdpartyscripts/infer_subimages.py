@@ -37,16 +37,16 @@ import numpy as np
 
 from caffe2.python import workspace
 
-from detectron.core.config import assert_and_infer_cfg
-from detectron.core.config import cfg
-from detectron.core.config import merge_cfg_from_file
-from detectron.utils.io import cache_url
-from detectron.utils.logging import setup_logging
-from detectron.utils.timer import Timer
-import detectron.core.test_engine as infer_engine
-import detectron.datasets.dummy_datasets as dummy_datasets
-import detectron.utils.c2 as c2_utils
-import detectron.utils.vis as vis_utils
+from detectron2.config import assert_and_infer_cfg
+from detectron2.config import cfg
+from detectron2.config import merge_cfg_from_file
+from detectron2.utils.io import cache_url
+from detectron2.utils.logging import setup_logging
+from detectron2.utils.timer import Timer
+import detectron2.core.test_engine as infer_engine
+import detectron2.datasets.dummy_datasets as dummy_datasets
+import detectron2.utils.c2 as c2_utils
+import detectron2.utils.vis as vis_utils
 
 import pycocotools.mask as mask_util
 

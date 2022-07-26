@@ -17,3 +17,4 @@ file_utils.mkdir(os.path.join(db.path_to_dataset, 'calib'))
 
 db.calibrate_camera()
 db.dump_video('calib')
+ 
