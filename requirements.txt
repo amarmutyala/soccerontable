@@ -7,9 +7,10 @@ pyyaml
 shapely
 tqdm
 glog
-torch
-torchvision
+# torch
+# torchvision
 visdom
 openmesh
 glumpy
 pyopengl
+
