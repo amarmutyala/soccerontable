@@ -40,10 +40,11 @@ import multiprocessing as mp
 from detectron2.config import get_cfg
 from detectron2.data.detection_utils import read_image
 from detectron2.utils.logger import setup_logger
+from detectron2 import model_zoo
 
 import tqdm
 import pycocotools.mask as mask_util
-
+import torch
 
 from predictor import VisualizationDemo
 
@@ -60,13 +61,6 @@ def parse_args():
         default="configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
         metavar="FILE",
         help="path to config file",
-    )
-    parser.add_argument(
-        '--wts',
-        dest='weights',
-        help='weights model file (/path/to/model_weights.pkl)',
-        default=None,
-        type=str
     )
     parser.add_argument(
         '--output',
@@ -120,7 +114,7 @@ def parse_args():
     parser.add_argument(
         "--confidence-threshold",
         type=float,
-        default=0.5,
+        default=0.8,
         help="Minimum score for instance predictions to be shown",
     )
     parser.add_argument(
@@ -138,11 +132,13 @@ def parse_args():
 
 def setup_cfg(args):
     cfg = get_cfg()
-    cfg.merge_from_file(args.config_file)
+    cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
+    # cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.MODEL.RETINANET.SCORE_THRESH_TEST = args.confidence_threshold
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.confidence_threshold
     cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = args.confidence_threshold
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(args.config_file)
     cfg.freeze()
     return cfg
 
@@ -215,7 +211,7 @@ def main(args):
             )
 
             _mask = np.zeros((h, w), dtype=np.uint8)
-            all_boxes = np.zeros((0, 4))
+            all_boxes = np.zeros((0, 5))
             all_classes = []
             all_segs = []
             for index in range(len(subimages)):
@@ -223,10 +219,11 @@ def main(args):
 
                 predictions, visualized_output = demo.run_on_image(im[x1:x2, y1:y2, :])
                 preds = predictions['instances'].to('cpu')
-                boxes, segms, classes = preds.pred_boxes, preds.pred_masks, preds.pred_classes
+                boxes, segms, classes, scores = preds.pred_boxes, preds.pred_masks, preds.pred_classes, preds.scores
+                
                 if boxes is None:
                     continue
-
+                
                 if args.output:
                     if os.path.isdir(args.output):
                         assert os.path.isdir(args.output), args.output
@@ -253,6 +250,8 @@ def main(args):
                 boxes_np[:, 1] += x1
                 boxes_np[:, 3] += x1
 
+                boxes_np = np.column_stack((boxes_np, scores))
+                
                 all_boxes = np.vstack((all_boxes, boxes_np))
 
             _mask = _mask.astype(bool).astype(int)

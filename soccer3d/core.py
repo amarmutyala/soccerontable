@@ -1,3 +1,4 @@
+from ast import Load
 import numpy as np
 import os
 from os import listdir
@@ -17,7 +18,7 @@ import matplotlib
 import pycocotools.mask as mask_util
 from utils.nms.nms_wrapper import nms
 import json
-
+from yaml import Loader, Dumper
 
 class Player:
 
@@ -108,7 +109,7 @@ class YoutubeVideo:
                 # The first frame is estimated by manual clicking
                 manual_calib = join(self.path_to_dataset, 'calib', '{0}.npy'.format(self.frame_basenames[0]))
                 if exists(manual_calib):
-                    calib_npy = np.load(manual_calib).item()
+                    calib_npy = np.load(manual_calib, allow_pickle=True).item()
                     A, R, T = calib_npy['A'], calib_npy['R'], calib_npy['T']
                 else:
                     img = self.get_frame(0)
@@ -128,14 +129,15 @@ class YoutubeVideo:
                         if i % vis_every == 0:
                             vis = True
                         else:
-                            vis = False
-                        A, R, T, __ = calibration.calibrate_from_initialization(img, coarse_mask, A, R, T, vis)
+                            vis=False
+                        vis = False
+                        A, R, T, __ = calibration.calibrate_from_initialization(img, coarse_mask, A, R, T, visualize=vis)
 
                         np.save(join(self.path_to_dataset, 'calib', '{0}'.format(self.frame_basenames[i])),
                                 {'A': A, 'R': R, 'T': T})
 
             for i, basename in enumerate(tqdm(self.frame_basenames)):
-                calib_npy = np.load(join(self.path_to_dataset, 'calib', '{0}.npy'.format(basename))).item()
+                calib_npy = np.load(join(self.path_to_dataset, 'calib', '{0}.npy'.format(basename)), allow_pickle=True).item()
                 A, R, T = calib_npy['A'], calib_npy['R'], calib_npy['T']
                 self.calib[basename] = {'A': A, 'R': R, 'T': T}
 
@@ -413,7 +415,7 @@ class YoutubeVideo:
 
             for i, basename in enumerate(tqdm(self.frame_basenames)):
                 with open(join(self.path_to_dataset, 'detectron', '{0}.yml'.format(basename)), 'rb') as stream:
-                    data = yaml.load(stream)
+                    data = yaml.load(stream, Loader=Loader)
                 boxes, classes, segms = data['boxes'], data['classes'], data['segms']
 
                 self.detectron[basename] = {'boxes': boxes, 'segms': segms, 'keyps': None, 'classes': classes}
@@ -488,7 +490,7 @@ class YoutubeVideo:
         data = self.detectron[basename]
         boxes, segms, keyps, classes = data['boxes'], data['segms'], data['keyps'], data['classes']
 
-        valid = (boxes[:, 4] > score_thresh) * ([j == 1 for j in classes])
+        valid = (boxes[:, 4] > score_thresh) * ([j == 1 for j in classes])        
         valid = (valid==True).nonzero()[0]
         boxes = boxes[valid, :]
         segms = [segms[i] for i in valid]
